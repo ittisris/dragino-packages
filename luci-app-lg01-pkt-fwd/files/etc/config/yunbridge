@@ -1,0 +1,6 @@
+config bridge 'config'
+	option socket_timeout '5'
+	option secure_rest_api 'false'
+	option baudrate '115200'
+	option disabled	'1'
+

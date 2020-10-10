@@ -1,0 +1,48 @@
+#!/bin/sh /etc/rc.common
+# Copyright (C) 2013 OpenWrt.org
+
+# start after and stop before networking
+START=98
+STOP=99
+
+USE_PROCD=1
+PROCD_DEBUG=1
+
+reset_mcu ()
+{
+	local pin=$1
+
+	if [ -d "/sys/class/gpio/gpio${pin}" ]
+	then
+		echo 1 > /dev/null
+	else
+		echo ${pin} > /sys/class/gpio/export
+		echo "out" > /sys/class/gpio/gpio${pin}/direction
+		echo "1" > /sys/class/gpio/gpio${pin}/value
+		sleep 5
+		echo "0" > /sys/class/gpio/gpio${pin}/value
+		sleep 1
+		echo "1" > /sys/class/gpio/gpio${pin}/value
+		echo ${pin} > /sys/class/gpio/unexport
+		logger "reset completed"
+	fi
+}
+
+service_triggers()
+{
+	procd_add_reload_trigger "lora_pkt_fwd"
+}
+
+start_service()
+{
+	logger "Reset radio board"
+	echo "Reset radio board"
+
+	local reset_pin=$(uci get lorawan.radio.reset_pin)
+	reset_mcu $reset_pin
+
+	procd_open_instance
+	procd_set_param command "/etc/iot/scripts/lg01_pkt_fwd"
+	procd_set_param respawn
+	procd_close_instance
+}
